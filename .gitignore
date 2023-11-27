@@ -1,0 +1,10 @@
+*[Tt]est*
+*.credentials
+*.DS_Store
+*.cache
+.vscode
+*.log.*
+*.[Ll]og
+*.cert
+*.key
+*.pem
