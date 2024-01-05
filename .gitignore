@@ -9,3 +9,4 @@
 *.key
 *.pem
 *[Ss]ecret*
+/cluster-deployment-infra-agnostic/*-cluster-spec
