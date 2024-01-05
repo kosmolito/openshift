@@ -598,3 +598,17 @@ parameters:
   archiveOnDelete: "false"
 "@
 
+
+$ConfigFolder = "$($PSScriptRoot)/$($ClusterName).$($ClusterDomain)-cluster-spec"
+$NFSProvisionerFolder = "$($ConfigFolder)/nfs-storage-class-provisioner"
+
+
+if (!(Test-Path -Path $($ConfigFolder))) {
+    New-Item -Path $($ConfigFolder) -ItemType Directory | Out-Null
+}
+
+if (!(Test-Path -Path $($NFSProvisionerFolder))) {
+    New-Item -Path $($NFSProvisionerFolder) -ItemType Directory | Out-Null
+}
+
+
