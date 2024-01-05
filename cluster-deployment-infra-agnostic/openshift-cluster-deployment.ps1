@@ -372,3 +372,62 @@ spec:
       storage: 100Gi
 "@
 
+################# Shell Script to run on the Service Node #################
+$ShellScript = @"
+#!/bin/bash
+echo "###### Updating system ######"
+dnf update -y
+
+echo "###### Installing packages bind firewalld & haproxy ######"
+dnf install -y bind bind-utils nfs-utils firewalld haproxy --allowerasing
+
+echo "###### Enabling and starting firewalld & named ######"
+systemctl enable named firewalld
+systemctl start named firewalld
+
+echo "###### Configuring bind (local DNS server) ######"
+cp named.conf /etc/named.conf
+cp named.conf.local /etc/named/
+mkdir -p /etc/named/zones
+cp db* /etc/named/zones
+systemctl restart named
+
+# Configure firewall
+echo "###### Configuring firewall ######"
+firewall-cmd --permanent --add-port=53/udp
+firewall-cmd --permanent --add-port=6443/tcp
+firewall-cmd --permanent --add-port=22623/tcp
+firewall-cmd --permanent --add-service=http
+firewall-cmd --permanent --add-service=https
+firewall-cmd --reload
+
+# Configure haproxy
+echo "###### Configuring haproxy ######"
+cp haproxy.cfg /etc/haproxy/haproxy.cfg
+setsebool -P haproxy_connect_any 1
+systemctl enable haproxy
+systemctl start haproxy
+
+# Configure registry
+echo "###### Configuring Image registry & Appdata NFS Share ######"
+# Enter a value in /etc/exports for the NFS share (Change * to the IP address or subnet of the host that will be mounting the NFS share)
+mkdir -p $($ServiceNode.ImageRegistryPath)
+mkdir -p $($ServiceNode.AppDataPath)
+chown -R nfsnobody:nfsnobody $($ServiceNode.ImageRegistryPath)
+chown -R nfsnobody:nfsnobody $($ServiceNode.AppDataPath)
+chmod -R 777 $($ServiceNode.ImageRegistryPath)
+chmod -R 777 $($ServiceNode.AppDataPath)
+systemctl enable nfs-server
+systemctl start nfs-server
+cat <<EOF > /etc/exports
+$($ServiceNode.ImageRegistryPath)  *(rw,sync,no_root_squash)
+$($ServiceNode.AppDataPath)  *(rw,sync,no_root_squash)
+EOF
+# Explnation of the below commands
+# exportfs -rav : Export all directories and verify the exports file
+exportfs -rav
+systemctl restart nfs-server
+
+
+echo "###### All done ######"
+"@
