@@ -335,3 +335,40 @@ backend $($ClusterName)_https_ingress_traffic_be
     }))
 "@
 
+################# Image Registry Configuration #################
+$registryConfig = @"
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: image-registry-pv
+spec:
+  capacity:
+    storage: 100Gi
+  claimRef:
+    apiVersion: v1
+    kind: PersistentVolumeClaim
+    name: image-registry-storage
+    namespace: openshift-image-registry
+  accessModes:
+  - ReadWriteMany
+  nfs:
+    path: $($ServiceNode.ImageRegistryPath)
+    server: $($ServiceNode.IP)
+  persistentVolumeReclaimPolicy: Retain
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  finalizers:
+  - kubernetes.io/pvc-protection
+  name: image-registry-storage
+  namespace: openshift-image-registry
+spec:
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 100Gi
+"@
+
