@@ -431,3 +431,170 @@ systemctl restart nfs-server
 
 echo "###### All done ######"
 "@
+
+################# NFS Storage Class Configuration #################
+$AppDataNFSNameSpace = "nfs"
+$NFSProvisionerName = "nfs-storage"
+$NFSProvisionerConfig = @"
+############## NFS Namespace ##############
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: $($AppDataNFSNameSpace)
+---
+############### Create the service account that the provisioner will use ##############
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: nfs-client-provisioner
+  namespace: $($AppDataNFSNameSpace)
+---
+############## Create a cluster role and bind it to the service account ##############
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: nfs-client-provisioner-runner
+rules:
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["persistentvolumes"]
+    verbs: ["get", "list", "watch", "create", "delete"]
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    verbs: ["get", "list", "watch", "update"]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["storageclasses"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["create", "update", "patch"]
+---
+############## Bind the service account to the cluster role ##############
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: run-nfs-client-provisioner
+subjects:
+  - kind: ServiceAccount
+    name: nfs-client-provisioner
+    namespace: $($AppDataNFSNameSpace)
+roleRef:
+  kind: ClusterRole
+  name: nfs-client-provisioner-runner
+  apiGroup: rbac.authorization.k8s.io
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: leader-locking-nfs-client-provisioner
+  namespace: $($AppDataNFSNameSpace)
+rules:
+  - apiGroups: [""]
+    resources: ["endpoints"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: leader-locking-nfs-client-provisioner
+  namespace: $($AppDataNFSNameSpace)
+subjects:
+  - kind: ServiceAccount
+    name: nfs-client-provisioner
+    namespace: $($AppDataNFSNameSpace)
+roleRef:
+  kind: Role
+  name: leader-locking-nfs-client-provisioner
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: use-scc-hostmount-anyuid
+  namespace: $($AppDataNFSNameSpace)
+rules:
+- apiGroups:
+  - security.openshift.io
+  resourceNames:
+  - hostmount-anyuid
+  resources:
+  - securitycontextconstraints
+  verbs:
+  - use
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: use-scc-hostmount-anyuid
+  namespace: $($AppDataNFSNameSpace)
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: use-scc-hostmount-anyuid
+subjects:
+- kind: ServiceAccount
+  name: nfs-client-provisioner
+  namespace: $($AppDataNFSNameSpace)
+---
+############## NFS provisioner deployment ##############
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nfs-client-provisioner
+  labels:
+    app: nfs-client-provisioner
+  namespace: $($AppDataNFSNameSpace)
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: nfs-client-provisioner
+  template:
+    metadata:
+      labels:
+        app: nfs-client-provisioner
+    spec:
+      serviceAccountName: nfs-client-provisioner
+      containers:
+        - name: nfs-client-provisioner
+          image: registry.k8s.io/sig-storage/nfs-subdir-external-provisioner:v4.0.2
+          volumeMounts:
+            - name: nfs-client-root
+              mountPath: /persistentvolumes
+          env:
+            - name: PROVISIONER_NAME
+              value: $($NFSProvisionerName)
+            - name: NFS_SERVER
+              value: $($ServiceNode.IP)
+            - name: NFS_PATH
+              value: $($ServiceNode.AppDataPath)
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "500m"
+            limits:
+              memory: "1Gi"
+              cpu: "1"
+      volumes:
+        - name: nfs-client-root
+          nfs:
+            server: $($ServiceNode.IP)
+            path: $($ServiceNode.AppDataPath)
+---
+# NFS storage class
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: nfs-client
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: $($NFSProvisionerName)
+parameters:
+  # If archiveOnDelete is set to true, when a PVC is deleted, the PV will not be deleted.
+  archiveOnDelete: "false"
+"@
+
