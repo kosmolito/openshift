@@ -692,3 +692,25 @@ $($ClusterNodes[4].Name) - Worker/compute
 
 Congratulations, you have successfully deployed an OpenShift Cluster.
 "@
+
+################# Define the files to create #################
+$dbDomainFile = "$($ConfigFolder)/db.$($ClusterDomain)"
+$dbReverseFile = "$($ConfigFolder)/db.$($NetworkAddress)"
+$NamedConfigFile = "$($ConfigFolder)/named.conf"
+$NamedConfigLocalFile = "$($ConfigFolder)/named.conf.local"
+$haproxyConfigFile = "$($ConfigFolder)/haproxy.cfg"
+$registryConfigFile = "$($ConfigFolder)/internal-image-registry.yaml"
+$ShellScriptFile = "$($ConfigFolder)/setup.sh"
+$NFSProvisionerConfigFile = "$($NFSProvisionerFolder)/nfs-provisioner-deployment.yaml"
+$ReadmeFile = "$($ConfigFolder)/README.md"
+
+################# Create the files #################
+$dbDomainConfig | Out-File $dbDomainFile
+$dbIPConfig | Out-File $dbReverseFile
+$NamedConfig | Out-File $NamedConfigFile
+$NamedConfigLocal | Out-File $NamedConfigLocalFile
+$haproxyConfig | Out-File $haproxyConfigFile
+$registryConfig | Out-File $registryConfigFile
+$ShellScript | Out-File $ShellScriptFile
+$NFSProvisionerConfig | Out-File $NFSProvisionerConfigFile
+$ClusterSpecificReadme | Out-File $ReadmeFile
