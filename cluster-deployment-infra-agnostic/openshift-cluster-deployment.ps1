@@ -69,3 +69,19 @@ $NetworkAddressReverse = $Octets[2] + "." + $Octets[1] + "." + $Octets[0]
 # Remove the first three octets from the IP address to get the last octet, +1 to remove the period (.) from the IP address
 $ServiceLastOctet = $ServiceNode.IP.Substring($ServiceNode.IP.LastIndexOf(".") + 1)
 
+$Display = @"  
+################################ OpenShift Cluster Configuration ################################
+Cluster Name: $ClusterName
+Cluster Domain: $ClusterDomain
+`n
+"@
+
+$Display | Out-Host
+Write-Host -NoNewline "########## Infrastructure Node ##########"
+$ServiceNode | Format-List
+Write-Host -NoNewline "################### Cluster Nodes ###################"
+$ClusterNodes | Format-Table -AutoSize
+Write-Host "############################################################################################"
+Write-Host "PLEASE REVIEW THE ABOVE CONFIGURATION AND PRESS ENTER TO CONTINUE OR CTRL+C TO EXIT"
+pause
+
