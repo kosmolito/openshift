@@ -16,3 +16,16 @@ I believe that the best way to learn something is to do it. So, I decided to aut
 - PowerShell 7 installed on your local machine
   - (Will be used to run the script and generate necessary files)
 
+## Instructions
+
+- 1. Open the `setup.ps1` file in PowerShell 7.
+- 2. Change the variables at the top of the file to match your environment.
+- 3. Run the PowerShell script.
+
+> **Note:** It will generate a folder with the name of your cluster + the domain name. This folder will contain the necessary files to setup the cluster.
+
+- 4. In the folder that was generated, there will be a `README.md` file. This file will contain the **instructions for your specific cluster**.
+
+- 5. Follow the instructions in the `README.md` file to setup your cluster.
+
+### Happy Clustering
