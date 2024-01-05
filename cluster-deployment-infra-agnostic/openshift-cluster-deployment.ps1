@@ -128,3 +128,31 @@ _etcd-server-ssl._tcp.$($ClusterName).$($ClusterDomain).    86400       IN    SR
 _etcd-server-ssl._tcp.$($ClusterName).$($ClusterDomain).    86400       IN    SRV     0    10    2380    etcd-2.$($($ClusterDomain).split(".")[1])
 "@
 
+################# Reverse DNS #################
+$dbIPConfig = @"
+`$TTL    604800
+@       IN      SOA     $($ServiceNode.Name).$($ClusterDomain). admin.$($ClusterDomain). (
+                  6     ; Serial
+             604800     ; Refresh
+              86400     ; Retry
+            2419200     ; Expire
+             604800     ; Negative Cache TTL
+)
+
+; name servers - NS records
+    IN      NS      $($ServiceNode.Name).$($ClusterDomain).
+
+; name servers - PTR records
+$ServiceLastOctet    IN    PTR    $($ServiceNode.Name).$($ClusterDomain).
+
+; OpenShift Container Platform Cluster - PTR records
+
+$(($ClusterNodes | ForEach-Object {
+  $LastOctet = $_.IP.Substring($_.IP.LastIndexOf(".") + 1)
+  $FQDN = $_.Name + "." + $ClusterName + "." + $ClusterDomain + "."
+  "`n$LastOctet    IN    PTR    $FQDN"
+}))
+$ServiceLastOctet    IN    PTR    api.$($ClusterName).$($ClusterDomain).
+$ServiceLastOctet    IN    PTR    api-int.$($ClusterName).$($ClusterDomain).
+"@
+
