@@ -226,3 +226,15 @@ include "/etc/named.root.key";
 include "/etc/named/named.conf.local";
 "@
 
+$NamedConfigLocal = @"
+zone "$($ClusterDomain)" {
+    type master;
+    file "/etc/named/zones/db.$($ClusterDomain)"; # zone file path
+};
+
+zone "$($NetworkAddressReverse).in-addr.arpa" {
+    type master;
+    file "/etc/named/zones/db.$($NetworkAddress)";  # $($NetworkAddress).0/24 subnet
+};
+"@
+
