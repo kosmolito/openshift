@@ -55,3 +55,17 @@ $ClusterNodes = @(
     Role = "worker"
 }
 )
+
+## Remove the last octet from the IP address to get the network address
+# $NetworkAddress = $ServiceNode.IP.Substring(0, $ServiceNode.IP.LastIndexOf("."))
+
+# Octets
+$Octets = $NetworkAddress.Split(".")
+
+# Reverse the octets
+$NetworkAddressReverse = $Octets[2] + "." + $Octets[1] + "." + $Octets[0]
+
+
+# Remove the first three octets from the IP address to get the last octet, +1 to remove the period (.) from the IP address
+$ServiceLastOctet = $ServiceNode.IP.Substring($ServiceNode.IP.LastIndexOf(".") + 1)
+
