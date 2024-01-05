@@ -612,3 +612,83 @@ if (!(Test-Path -Path $($NFSProvisionerFolder))) {
 }
 
 
+$ClusterSpecificReadme = @"
+# Cluster Deployment Instructions for $($ClusterName).$($ClusterDomain)
+
+``````
+# Cluster Name: $ClusterName
+# Cluster Domain: $ClusterDomain
+# Network Address: $NetworkAddress
+# Service Node: $($ServiceNode.Name)
+# Cluster Nodes:
+  $($ClusterNodes | ForEach-Object {
+    $_.Name + " - " + $_.IP + " - " + $_.Role +  "`n "
+  })
+``````
+
+## Instructions
+- 1. Copy the ``$ClusterName.$ClusterDomain`` folder to the ``$($ServiceNode.Name)`` Node.
+- 2. Navigate to the ``$ClusterName.$ClusterDomain`` folder on the ``$($ServiceNode.Name)`` and run the ``setup.sh`` file.
+
+  ``````bash
+  chmod +x setup.sh
+  sudo ./setup.sh
+  ``````
+- 3. Verify that the DNS server is running on the ``$($ServiceNode.Name)`` and the Nodes can be resolved.
+
+  ``````bash
+  nslookup $($ClusterNodes[0].Name).$($ClusterName).$($ClusterDomain)
+  nslookup $($ClusterNodes[1].Name).$($ClusterName).$($ClusterDomain)
+  nslookup $($ClusterNodes[2].Name).$($ClusterName).$($ClusterDomain)
+  nslookup $($ClusterNodes[3].Name).$($ClusterName).$($ClusterDomain)
+  nslookup $($ClusterNodes[4].Name).$($ClusterName).$($ClusterDomain)
+  ``````
+
+- 4. Once the ``setup.sh`` file has completed successfully, navigate to your [Red Hat Console](https://console.redhat.com/openshift).
+- 5. Navigate to [Cluster Creation Platform agnostic (x86_64)](https://console.redhat.com/openshift/assisted-installer/clusters/~new).
+- 6. Details should be selected as below:
+
+``````
+1. Cluster details
+      Cluster Name: $ClusterName
+      Base Domain: $ClusterDomain
+      Platform: x86_64
+      Hosts' network configuration: DHCP only
+
+2. Operators
+      All unchecked
+
+3. Host Discovery
+      Click on Add Hosts
+        Provisioning type: Full Image
+        SSH public key: <your public key> (Optional)
+      Click on Generate Discovery ISO
+      Click on Download Discovery ISO
+``````
+
+- 7. Boot the Cluster Nodes from the ``Discovery ISO``
+- 8. Once the Cluster Nodes have booted, they will appear in the [Red Hat Console](https://console.redhat.com/openshift), in the Clusters -> ``$ClusterName`` section.
+- 9. Navigate to Clusters -> ``$ClusterName``. You should see your Nodes listed.
+- 10. Assign the Roles to the Nodes as below (Click on the Node, then click on the ``...`` and select ``Edit Role``):
+
+``````
+$($ClusterNodes[0].Name) - Master (Bootstrap)
+$($ClusterNodes[1].Name) - Master
+$($ClusterNodes[2].Name) - Master
+$($ClusterNodes[3].Name) - Worker/compute
+$($ClusterNodes[4].Name) - Worker/compute
+``````
+- 11. Click Next until you get to the ``Networking`` section.
+
+- 12. Select ``User Managed Networking`` for the Networking Management and click Next.
+- 13. On the Review and Create page, click on ``Install Cluster``.
+- 14. Once the Cluster has been installed, you can access the Cluster by clicking on the ``Console URL`` link.
+
+> **Note:** The Cluster will take a while to install.
+
+> **Note:** The ``kubeadmin`` password can be found in the Red Hat Console
+
+> **Note:** The ``kubeconfig`` file can be downloaded from the Red Hat Console
+
+Congratulations, you have successfully deployed an OpenShift Cluster.
+"@
