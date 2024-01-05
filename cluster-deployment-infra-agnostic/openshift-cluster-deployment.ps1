@@ -85,3 +85,46 @@ Write-Host "####################################################################
 Write-Host "PLEASE REVIEW THE ABOVE CONFIGURATION AND PRESS ENTER TO CONTINUE OR CTRL+C TO EXIT"
 pause
 
+################# DNS Configuration #################
+$dbDomainConfig = @"
+`$TTL    604800
+@       IN      SOA     $($ServiceNode.Name).$($ClusterDomain). admin.$($ClusterDomain). (
+                  1     ; Serial
+             604800     ; Refresh
+              86400     ; Retry
+            2419200     ; Expire
+             604800     ; Negative Cache TTL
+)
+
+; name servers - NS records
+    IN      NS      $($ServiceNode.Name)
+
+; name servers - A records
+$($ServiceNode.Name).$($ClusterDomain).                                 IN  A   $($ServiceNode.IP)
+; OpenShift Container Platform Cluster - A records
+
+$(($ClusterNodes | ForEach-Object {
+  $FQDN = $_.Name + "." + $ClusterName + "." + $ClusterDomain + "."
+  "`n$FQDN".padright(40) + "IN  A   $($_.IP)"
+}))
+
+
+; OpenShift internal cluster IPs - A records
+api.$($ClusterName).$($ClusterDomain).                                  IN  A   $($ServiceNode.IP)
+api-int.$($ClusterName).$($ClusterDomain).                              IN  A   $($ServiceNode.IP)
+*.apps.$($ClusterName).$($ClusterDomain).                               IN  A   $($ServiceNode.IP)
+console-openshift-console.apps.$($ClusterName).$($ClusterDomain).       IN  A   $($ServiceNode.IP)
+oauth-openshift.apps.$($ClusterName).$($ClusterDomain).                 IN  A   $($ServiceNode.IP)
+$($Index = 0)
+$($ClusterNodes | Where-Object { $_.Role -eq "master" } | ForEach-Object {
+  $FQDN = "etcd-$($Index)" + "." + $ClusterName + "." + $ClusterDomain + "."
+  "`n$FQDN".padright(40) + "IN  A   $($_.IP)"
+})
+
+
+; OpenShift internal cluster IPs - SRV records
+_etcd-server-ssl._tcp.$($ClusterName).$($ClusterDomain).    86400       IN    SRV     0    10    2380    etcd-0.$($($ClusterDomain).split(".")[1])
+_etcd-server-ssl._tcp.$($ClusterName).$($ClusterDomain).    86400       IN    SRV     0    10    2380    etcd-1.$($($ClusterDomain).split(".")[1])
+_etcd-server-ssl._tcp.$($ClusterName).$($ClusterDomain).    86400       IN    SRV     0    10    2380    etcd-2.$($($ClusterDomain).split(".")[1])
+"@
+
